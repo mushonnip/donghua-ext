@@ -19,11 +19,12 @@ jobs:
         id: version
         run: |
           VERSION=$(python - <<'PY'
-import json
-with open('manifest.json', 'r', encoding='utf-8') as f:
-    print(json.load(f)['version'])
-PY
-)
+          import json
+
+          with open('manifest.json', 'r', encoding='utf-8') as f:
+              print(json.load(f)['version'])
+          PY
+          )
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create XPI (zip)
