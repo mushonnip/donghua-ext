@@ -1,0 +1,60 @@
+.ae-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.ae-btn {
+  background: #1c1c1c;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.ae-btn[aria-pressed="true"] {
+  background: #e64b5d;
+  border-color: #e64b5d;
+}
+
+.ae-episode-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ae-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: #2a9d8f;
+}
+
+.ae-progress {
+  margin: 8px 0 12px 0;
+  font-size: 12px;
+  color: #fff;
+}
+
+.ae-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 12px 0;
+  color: #fff;
+}
+
+.ae-range input {
+  width: 54px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.ae-muted {
+  color: #666;
+  font-size: 12px;
+}
