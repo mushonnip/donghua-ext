@@ -1,0 +1,22 @@
+# Node
+node_modules/
+
+# Build outputs
+/dist/
+/build/
+
+# Wrangler
+.wrangler/
+
+# WebExtension tooling
+web-ext-artifacts/
+
+# Env files
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store

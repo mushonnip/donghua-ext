@@ -1,9 +1,9 @@
 {
   "manifest_version": 2,
-  "name": "AniChin Tracker",
+  "name": "Anime Tracker",
   "version": "0.1.0",
-  "description": "Favorite series and track completed episodes on anichin.moe.",
-  "permissions": ["storage", "https://anichin.moe/*"],
+  "description": "Favorite series and track completed episodes on a supported site.",
+  "permissions": ["storage", "https://anichin.moe/*", "https://donghua.mushonnip.id/*"],
   "content_scripts": [
     {
       "matches": ["https://anichin.moe/*"],
@@ -11,5 +11,9 @@
       "css": ["content.css"],
       "run_at": "document_end"
     }
-  ]
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
 }

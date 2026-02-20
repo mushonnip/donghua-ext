@@ -7,11 +7,12 @@ Build a Firefox (Manifest V2) browser extension for `anichin.moe` that lets user
 - Mark a range of episodes completed from the watch page (e.g., 1–9).
 - View simple progress as `completed/total` when available.
 
-The extension does not use any external API; it relies on DOM selectors (class/id) to detect the current series and episode list. All data is stored locally in the browser.
+The extension does not use any external API for anime data; it relies on DOM selectors (class/id) to detect the current series and episode list. User state is synchronized to a backend using a Cloudflare Worker + Cloudflare D1 database.
 
 ## Goals
 - Enable users to favorite shows and track watched episodes without external accounts.
 - Provide a lightweight, in-page UI with minimal friction.
+- Sync user state to the backend so it persists across browsers/devices.
 
 ## Success Metrics
 - Weekly DAU/WAU usage of “favorite” and “mark completed” actions.
@@ -27,14 +28,15 @@ The extension does not use any external API; it relies on DOM selectors (class/i
   - “Completed” controls for episodes inside the watch page episode list.
   - Progress display (`completed/total`) on watch page.
 - Storage:
-  - Local-only browser storage.
-  - No account creation, no sync, no external services.
+  - Backend sync via Cloudflare Worker + D1.
+  - Local cache is allowed for offline/latency but not the source of truth.
+  - No account creation in MVP (auth mechanism TBD).
 
 ## Non-Goals
-- Cross-device or cross-site sync.
 - External account integrations (MAL/Anilist).
 - Automatic watched detection (user must click).
 - Recommendations or discovery features.
+ - Analytics beyond basic action counts.
 
 ## DOM Detection Strategy (No API)
 The extension must parse information from the page DOM. Selectors are heuristic and may change if the site markup changes.
@@ -87,8 +89,8 @@ Heuristic selectors:
 - Series detail page: place near `.det h2 a`.
 - Watch page: place near `.det h2 a` if present; otherwise place above the `.episodelist` container.
 
-## Data Model (Local Storage)
-Store a single record per series, keyed by normalized series URL.
+## Data Model (Backend)
+Store a single record per series, keyed by normalized series URL. Persist in Cloudflare D1; client may cache locally.
 
 Fields:
 - `title`: string
@@ -98,22 +100,28 @@ Fields:
 - `totalEpisodes`: number (optional, from series detail or watch page)
 - `lastUpdated`: timestamp
 
+Backend metadata (suggested):
+- `userId` or `deviceId`: string (auth/identity key)
+- `updatedAt`: timestamp (server-side)
+
 ## UX Flows
 1. User opens a series detail page.
 2. Extension injects Favorite toggle near the title.
 3. User opens a watch page.
 4. Extension injects Favorite toggle and “Completed” controls into episode list items.
-5. User marks episodes completed; progress count updates and persists locally.
+5. User marks episodes completed; progress count updates and persists to backend.
 
 ## Permissions (Firefox MV2)
 - `storage`
 - Host permission: `https://anichin.moe/*`
+- Backend host permission: `https://donghua.mushonnip.id/*`
 - Content scripts on series detail and watch pages.
 
 ## Risks and Edge Cases
 - DOM changes may break selectors; note ongoing maintenance requirement.
 - Missing `.det` or `.episodelist` should result in no injected controls (fail gracefully).
 - Episode numbering may be inconsistent; episode URL is the source of truth.
+- Backend unavailability should not block UI; queue updates and retry.
 
 ## Acceptance Criteria and Test Scenarios
 1. Favorite button appears on series detail page and toggles state; persists after reload.
@@ -123,6 +131,18 @@ Fields:
 5. Progress count shows `completed/total` when `total` is parseable.
 6. If `.det` or `.episodelist` is missing, the extension does not throw errors and injects no UI.
 7. Range action marks multiple episodes at once (e.g., 1–9) and persists.
+8. Changes are synchronized to backend and restored on a fresh browser instance.
+
+## Backend (Cloudflare Worker + D1)
+- Worker provides a minimal REST API for sync.
+- D1 stores user state rows per series.
+- Expected operations:
+- `GET /state` -> return all series records for the user.
+- `PUT /state` -> upsert a single series record.
+- `POST /sync` -> optional batch upsert.
+- Auth/identity:
+  - MVP uses a single `Authorization` header containing the API ID/KEY token.
+  - No user accounts in MVP.
 
 ## Open Questions
-- None for MVP. Selector stability is the primary operational risk.
+- Confirm exact API paths (`/state`, `/sync`) if different on `https://donghua.mushonnip.id`.

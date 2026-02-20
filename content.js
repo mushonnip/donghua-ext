@@ -1,5 +1,7 @@
 (() => {
   const ext = typeof browser !== "undefined" ? browser : chrome;
+  const API_BASE = "https://donghua.mushonnip.id";
+  let API_AUTH = "";
 
   function storageGet(key) {
     try {
@@ -21,12 +23,34 @@
     }
   }
 
+  async function loadAuth() {
+    const data = await storageGet("api_auth");
+    API_AUTH = data.api_auth || "";
+  }
+
+  function apiHeaders() {
+    const headers = { "Content-Type": "application/json" };
+    if (API_AUTH) headers.Authorization = API_AUTH;
+    return headers;
+  }
+
+  async function apiFetch(path, options = {}) {
+    if (!API_AUTH) return null;
+    const url = new URL(path, API_BASE);
+    const res = await fetch(url.toString(), {
+      ...options,
+      headers: { ...apiHeaders(), ...(options.headers || {}) }
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return res;
+  }
+
   function normalizeUrl(href) {
     if (!href) return null;
     try {
       const url = new URL(href, window.location.origin);
       url.hash = "";
-      return url.href;
+      return `${url.pathname}${url.search}`;
     } catch (err) {
       return null;
     }
@@ -34,6 +58,10 @@
 
   function seriesKey(seriesUrl) {
     return `anime::${seriesUrl}`;
+  }
+
+  function pendingKey() {
+    return "pending::queue";
   }
 
   function parseTotalEpisodes(text) {
@@ -71,8 +99,45 @@
     return { title, seriesUrl, totalEpisodes };
   }
 
+  async function fetchRemoteSeries(seriesUrl) {
+    if (!API_AUTH || !seriesUrl) return null;
+    try {
+      const url = new URL("/state", API_BASE);
+      url.searchParams.set("seriesUrl", seriesUrl);
+      const res = await fetch(url.toString(), { headers: apiHeaders() });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data && data.record ? data.record : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  async function fetchAllRemoteSeries() {
+    if (!API_AUTH) return [];
+    try {
+      const res = await apiFetch("/state");
+      if (!res) return [];
+      const data = await res.json();
+      return Array.isArray(data.records) ? data.records : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
   async function loadSeriesRecord(seriesInfo) {
     if (!seriesInfo.seriesUrl) return null;
+    const remote = await fetchRemoteSeries(seriesInfo.seriesUrl);
+    if (remote) {
+      if (seriesInfo.title && seriesInfo.title !== remote.title) {
+        remote.title = seriesInfo.title;
+      }
+      if (seriesInfo.totalEpisodes) {
+        remote.totalEpisodes = seriesInfo.totalEpisodes;
+      }
+      return remote;
+    }
+
     const key = seriesKey(seriesInfo.seriesUrl);
     const data = await storageGet(key);
     const existing = data[key];
@@ -97,11 +162,47 @@
     return record;
   }
 
+  async function queuePending(record) {
+    const key = pendingKey();
+    const data = await storageGet(key);
+    const pending = data[key] || [];
+    const map = new Map(pending.map((item) => [item.seriesUrl, item]));
+    map.set(record.seriesUrl, record);
+    await storageSet({ [key]: Array.from(map.values()) });
+  }
+
+  async function flushPending() {
+    if (!API_AUTH) return;
+    const key = pendingKey();
+    const data = await storageGet(key);
+    const pending = data[key] || [];
+    if (!pending.length) return;
+    try {
+      const res = await apiFetch("/sync", {
+        method: "POST",
+        body: JSON.stringify({ series: pending })
+      });
+      if (res) await storageSet({ [key]: [] });
+    } catch (err) {
+      // keep pending on failure
+    }
+  }
+
   async function saveSeriesRecord(record) {
     if (!record || !record.seriesUrl) return;
     record.lastUpdated = Date.now();
     const key = seriesKey(record.seriesUrl);
     await storageSet({ [key]: record });
+    if (!API_AUTH) return;
+    try {
+      await apiFetch("/state", {
+        method: "PUT",
+        body: JSON.stringify(record)
+      });
+      await flushPending();
+    } catch (err) {
+      await queuePending(record);
+    }
   }
 
   function createFavoriteButton(record) {
@@ -310,8 +411,24 @@
   }
 
   async function init() {
+    await loadAuth();
     const seriesInfo = getSeriesInfo();
     if (!seriesInfo.seriesUrl) return;
+
+    if (API_AUTH) {
+      const records = await fetchAllRemoteSeries();
+      if (records.length) {
+        const bulk = {};
+        records.forEach((rec) => {
+          if (rec && rec.seriesUrl) {
+            bulk[seriesKey(rec.seriesUrl)] = rec;
+          }
+        });
+        if (Object.keys(bulk).length) {
+          await storageSet(bulk);
+        }
+      }
+    }
 
     const record = await loadSeriesRecord(seriesInfo);
     if (!record) return;
@@ -319,6 +436,7 @@
     injectFavoriteButton(record);
     injectEpisodeControls(record);
     await saveSeriesRecord(record);
+    await flushPending();
   }
 
   if (document.readyState === "loading") {
