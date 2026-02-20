@@ -1,0 +1,45 @@
+name: Build extension package
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version from manifest
+        id: version
+        run: |
+          VERSION=$(python - <<'PY'
+import json
+with open('manifest.json', 'r', encoding='utf-8') as f:
+    print(json.load(f)['version'])
+PY
+)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create XPI (zip)
+        run: |
+          zip -r "anichin-tracker-${{ steps.version.outputs.version }}.xpi" \
+            manifest.json content.js content.css options.html options.js options.css
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: anichin-tracker-${{ steps.version.outputs.version }}
+          path: anichin-tracker-${{ steps.version.outputs.version }}.xpi
+
+      - name: Create GitHub Release and upload asset
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: anichin-tracker-${{ steps.version.outputs.version }}.xpi
+          generate_release_notes: true
