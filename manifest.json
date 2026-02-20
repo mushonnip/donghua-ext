@@ -3,6 +3,18 @@
   "name": "Anime Tracker",
   "version": "0.1.0",
   "description": "Favorite series and track completed episodes on a supported site.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "anichin-tracker@mushonnip.id",
+      "data_collection_permissions": {
+        "required": [
+          "authenticationInfo",
+          "websiteActivity",
+          "websiteContent"
+        ]
+      }
+    }
+  },
   "permissions": ["storage", "https://anichin.moe/*", "https://donghua.mushonnip.id/*"],
   "content_scripts": [
     {

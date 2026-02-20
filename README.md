@@ -8,6 +8,15 @@ Lightweight Firefox extension for `anichin.moe` to favorite series and mark epis
 3. Select `manifest.json` in this folder
 4. Visit your target site and open a series detail or watch page
 
+## Build (Production)
+1. Update the version in `manifest.json`.
+2. Ensure a stable add-on ID and data collection declaration exist in `manifest.json`:
+   - `"browser_specific_settings": { "gecko": { "id": "anichin-tracker@mushonnip.id", "data_collection_permissions": { "required": ["authenticationInfo","websiteActivity","websiteContent"] } } }`
+3. Create a clean package (XPI is just a ZIP):
+   - `zip -r anichin-tracker.xpi manifest.json content.js content.css options.html options.js options.css`
+4. Upload `anichin-tracker.xpi` to [AMO](https://addons.mozilla.org/en-US/developers/) as **Unlisted** to get it signed.
+5. Download the signed XPI from AMO and install it normally (regular installs require signing).
+
 ## Backend Setup (Cloudflare Worker + D1)
 1. Create a D1 database:
    - `wrangler d1 create anichin_tracker`
