@@ -21,6 +21,10 @@
   border-color: #e64b5d;
 }
 
+.ae-title-actions {
+  margin-left: 8px;
+}
+
 .ae-episode-control {
   display: inline-flex;
   align-items: center;

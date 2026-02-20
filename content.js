@@ -56,6 +56,21 @@
     }
   }
 
+  function deriveSeriesUrlFromEpisodeUrl(href) {
+    if (!href) return null;
+    try {
+      const url = new URL(href, window.location.origin);
+      const path = url.pathname;
+      const idx = path.indexOf("-episode-");
+      if (idx === -1) return null;
+      const seriesPath = path.slice(0, idx);
+      if (!seriesPath) return null;
+      return `${seriesPath}/`;
+    } catch (err) {
+      return null;
+    }
+  }
+
   function seriesKey(seriesUrl) {
     return `anime::${seriesUrl}`;
   }
@@ -88,6 +103,11 @@
 
     if (!seriesUrl) {
       seriesUrl = normalizeUrl(window.location.href);
+    }
+
+    if (seriesUrl) {
+      const derived = deriveSeriesUrlFromEpisodeUrl(seriesUrl);
+      if (derived) seriesUrl = derived;
     }
 
     let totalEpisodes = null;
@@ -410,6 +430,56 @@
     injectRangeControls(record, items);
   }
 
+  function updateTitleButtonState(btn, completed) {
+    btn.setAttribute("aria-pressed", completed ? "true" : "false");
+    btn.textContent = completed ? "Completed" : "Mark Complete";
+  }
+
+  function injectTitleCompletionButton(record) {
+    if (!record || !record.seriesUrl) return;
+    const title = document.querySelector(".title-section .entry-title") || document.querySelector(".entry-title");
+    if (!title) return;
+    if (document.querySelector(".ae-title-complete")) return;
+
+    const episodeUrl = normalizeUrl(window.location.href);
+    if (!episodeUrl) return;
+
+    const container = document.createElement("span");
+    container.className = "ae-inline ae-title-complete ae-title-actions";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ae-btn";
+
+    const isCompleted = record.completedEpisodes.includes(episodeUrl);
+    updateTitleButtonState(btn, isCompleted);
+
+    btn.addEventListener("click", async () => {
+      const idx = record.completedEpisodes.indexOf(episodeUrl);
+      if (idx === -1) {
+        record.completedEpisodes.push(episodeUrl);
+      } else {
+        record.completedEpisodes.splice(idx, 1);
+      }
+      updateTitleButtonState(btn, idx === -1);
+      await saveSeriesRecord(record);
+
+      const items = getEpisodeItems();
+      if (items.length) {
+        items.forEach((item) => {
+          const itemUrl = episodeUrlFromItem(item);
+          if (itemUrl !== episodeUrl) return;
+          const checkbox = item.querySelector("input.ae-checkbox");
+          if (checkbox) checkbox.checked = idx === -1;
+        });
+        injectProgress(record, items);
+      }
+    });
+
+    container.appendChild(btn);
+    title.appendChild(container);
+  }
+
   async function init() {
     await loadAuth();
     const seriesInfo = getSeriesInfo();
@@ -434,6 +504,7 @@
     if (!record) return;
 
     injectFavoriteButton(record);
+    injectTitleCompletionButton(record);
     injectEpisodeControls(record);
     await saveSeriesRecord(record);
     await flushPending();

@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Anime Tracker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Favorite series and track completed episodes on a supported site.",
   "browser_specific_settings": {
     "gecko": {
