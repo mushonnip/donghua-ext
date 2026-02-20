@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Anime Tracker",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Favorite series and track completed episodes on a supported site.",
   "browser_specific_settings": {
     "gecko": {
@@ -13,19 +13,36 @@
           "websiteContent"
         ]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "120.0"
     }
   },
-  "permissions": ["storage", "https://anichin.moe/*", "https://donghua.mushonnip.id/*"],
+  "permissions": [
+    "storage",
+    "https://anichin.moe/*",
+    "https://donghua.mushonnip.id/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://anichin.moe/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://anichin.moe/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_end"
     }
   ],
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
+  },
+  "browser_action": {
+    "default_title": "AniChin Tracker",
+    "default_popup": "options.html"
   }
 }

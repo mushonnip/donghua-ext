@@ -2,6 +2,10 @@
 
 Lightweight Firefox extension for `anichin.moe` to favorite series and mark episodes completed on the watch page. Data is stored locally in the browser.
 
+## Firefox for Android
+- This extension now exposes `options.html` via the toolbar popup (`browser_action.default_popup`) so settings are accessible on Android, where `options_ui` is not available.
+- Ensure Firefox for Android is recent enough for GeckoView extension support (`strict_min_version: 120.0`).
+
 ## Install (Temporary in Firefox)
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on...**
@@ -16,6 +20,11 @@ Lightweight Firefox extension for `anichin.moe` to favorite series and mark epis
    - `zip -r anichin-tracker.xpi manifest.json content.js content.css options.html options.js options.css`
 4. Upload `anichin-tracker.xpi` to [AMO](https://addons.mozilla.org/en-US/developers/) as **Unlisted** to get it signed.
 5. Download the signed XPI from AMO and install it normally (regular installs require signing).
+
+### CI Packaging
+- GitHub Actions workflow: `.github/workflows/release-zip.yml`
+- Trigger manually with **workflow_dispatch** or push a tag like `v0.1.2`.
+- It builds the same package contents as above (`manifest.json content.js content.css options.html options.js options.css`) and uploads an `.xpi` artifact.
 
 ## Backend Setup (Cloudflare Worker + D1)
 1. Create a D1 database:
